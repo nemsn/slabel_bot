@@ -1,0 +1,2 @@
+# slabel_bot
+slackerとkusosaitoのBot
