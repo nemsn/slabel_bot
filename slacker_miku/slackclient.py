@@ -95,13 +95,6 @@ class SlackClient(object):
             }
         self.send_to_websocket(message_json)
 
-    def upload_file(self, channel, fname, fpath, comment):
-        fname = fname or to_utf8(os.path.basename(fpath))
-        slacker.Slacker(self.token).files.upload(fpath,
-                                 channels=channel,
-                                 filename=fname,
-                                 initial_comment=comment)
-
     def send_message(self, channel, message, attachments=None):
         slacker.Slacker(self.token).chat.post_message(
                 channel,

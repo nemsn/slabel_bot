@@ -203,7 +203,7 @@ class BelugaUser(Beluga):
         self.opener = request.build_opener(request.HTTPCookieProcessor(self.cj))
 
         if not self._login(self.name, self.password):
-            raise BelugaLoginError()
+            raise Exception("Beluga Login Error.")
 
     def _save_cookie(self):
         self.cj.save(self.cookiefile, True, True)
@@ -462,10 +462,6 @@ class BelugaUser(Beluga):
         L = self._get_json_api(url, param)
         return self._json_to_timeline(L)
 
-class BelugaLoginError(Exception):
-    def login_error(self):
-        pass
-
 
 class BelugaTool(BelugaUser):
     """ Belugaに対して行いたい処理まとめ
@@ -500,15 +496,16 @@ class BelugaTool(BelugaUser):
         """ ユーザーのふぁぼ数最大の投稿といいね数最大の投稿を取得する
             @memo 指定されたユーザの全投稿を取ってくるため総投稿数に比例して時間がかかる
             @param user_name 取得したいユーザーのscreen_name
-            @return いいねベストのTimeline, ふぁぼベストのTimelineの二つをタプルで返す
-                    いいね、ふぁぼが存在しない場合Noneを返す
+            @return いいねベストのTimeline, ふぁぼベストのTimelineの二つと
+                    総いいね数、総ふぁぼ数を返す
         """
         user_id = self.get_user_id(user_name)
         max_id = 0
         endflg = False
         like_best = Timeline()
         fav_best = Timeline()
-
+        total_like = 0
+        total_fav = 0
         while not endflg:
             time.sleep(0.1)
             L = self.get_user_timeline(user_name, user_id, max_id=max_id)
@@ -519,13 +516,15 @@ class BelugaTool(BelugaUser):
                     fav_best = t
                 if t.likes_count > like_best.likes_count:
                     like_best = t
+                total_like += t.likes_count
+                total_fav += t.favorites_count
 
         if like_best.likes_count is 0:
             like_best = None
         if fav_best.favorites_count is 0:
             fav_best = None
             
-        return(like_best, fav_best)
+        return(like_best, fav_best, total_like, total_fav)
 
     def likes_all_in_room(self, room_name):
         """ 指定したルームの投稿全てにいいね10個つける
@@ -589,7 +588,7 @@ def main():
     logging.basicConfig(**kw)
     logging.getLogger().setLevel(logging.DEBUG)
 
-    b = BelugaTool("your screen_name", "your password")
+    b = BelugaTool("screen_name", "password")
 
 if __name__ == "__main__":
     main()

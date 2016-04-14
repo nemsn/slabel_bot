@@ -61,7 +61,7 @@ class Bot(threading.Thread):
         """ いいね、ふぁぼ、それぞれの最多投稿をリプライ相手に飛ばす
             重い、連投されたら死ぬ　でもいいや
         """
-        likes_t, favs_t = self._client.get_best_star_and_fav(screen_name)
+        likes_t, favs_t, likes_num, favs_num = self._client.get_best_star_and_fav(screen_name)
         post_msg = "@{0} \n".format(screen_name)
         if likes_t:
             post_msg += "likes: {0} \n{{{1}}}\n".format(likes_t.likes_count, likes_t.tweet_id)
@@ -72,6 +72,8 @@ class Bot(threading.Thread):
             post_msg += "favs: {0} \n{{{1}}}\n".format(favs_t.favorites_count, favs_t.tweet_id)
         else:
             post_msg += "favs not found.\n"
+
+        post_msg += "\ntotal \nlikes :{0}  fav:{1}\n".format(likes_num, favs_num)
 
         self._client.update(post_msg)
 

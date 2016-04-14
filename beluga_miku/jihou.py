@@ -16,11 +16,13 @@ def post_time_beluga():
     
     d = datetime.datetime.today()
 
+    """
     icon_num = d.hour
     if icon_num >= 12:
         icon_num -= 12
     file_path = "./icon/icon{}.png".format(icon_num)
     b.set_profile_image(file_path)
+    """
 
     s = ""
     if d.hour is 4:
