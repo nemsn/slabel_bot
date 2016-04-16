@@ -19,11 +19,11 @@ def main():
     logging.basicConfig(**kw)
     logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
 
-    b_miku = beluga_bot.Bot()
+    b_miku = beluga_bot.Bot(settings.BELUGA_BOT_NAME, settings.BELUGA_BOT_PASSWORD)
     b_miku.setDaemon(True)
     b_miku.start()
 
-    s_miku = slack_bot.Bot()
+    s_miku = slack_bot.Bot(settings.SLACK_API_TOKEN)
     s_miku.setDaemon(True)
     s_miku.start()
 

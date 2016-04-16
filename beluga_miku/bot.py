@@ -8,7 +8,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     import webapi.beluga_api as beluga_api
     import webapi.tell as tell
-    import settings
 except ImportError:
     print("from __main__ start")
 
@@ -16,9 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 class Bot(threading.Thread):
-    def __init__(self):
+    def __init__(self, name, password):
         threading.Thread.__init__(self)
-        self._client = beluga_api.BelugaTool(settings.BELUGA_BOT_NAME, settings.BELUGA_BOT_PASSWORD)
+        self._client = beluga_api.BelugaTool(name, password)
         self._reply_id_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reply_id.txt")
         self._last_reply_id = 0
         try:
@@ -107,5 +106,5 @@ if __name__ =="__main__":
     import webapi.tell as tell
     import settings
 
-    b = Bot()
+    b = Bot(settings.BELUGA_BOT_NAME, settings.BELUGA_BOT_PASSWORD)
     b.run()

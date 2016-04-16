@@ -109,7 +109,7 @@ class SlackClient(object):
         return Channel(self, self.channels[channel_id])
 
     def find_user_by_name(self, username):
-        for userid, user in iteritems(self.users):
+        for userid, user in self.users.items():
             if user['name'] == username:
                 return userid
 
@@ -119,3 +119,17 @@ class SlackClient(object):
             channel=channel,
             timestamp=timestamp)
 
+    def get_history(self, channel_id, oldest=0, latest=None, count=1000):
+        return slacker.Slacker(self.token).channels.history(
+            channel=channel_id,
+            count=count,
+            oldest=oldest,
+            latest=latest).body
+
+    def upload_file(self, filepath, filename, title, channels=None):
+        # channels:Comma-separated list of channel names or IDs
+        slacker.Slacker(self.token).files.upload(
+            filepath,
+            filename=filename,
+            title=title,
+            channels=channels).body

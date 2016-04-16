@@ -3,23 +3,25 @@ import os, sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import logging
 import time
+from datetime import datetime
+from datetime import timedelta
 import threading
 from slackclient import SlackClient
-import settings
 import re
-import webapi.tell as tell
-import webapi.beluga_api as beluga
+try:
+    import webapi.tell as tell
+    import webapi.beluga_api as beluga
+except ImportError:
+    print("dbug main start")
 
 logger = logging.getLogger(__name__)
 AT_MESSAGE_MATCHER = re.compile(r'^\<@(\w+)\>:? (.*)$')
 
 
 class Bot(threading.Thread):
-    def __init__(self):
+    def __init__(self, token):
         threading.Thread.__init__(self)
-        self._client = SlackClient(
-            settings.SLACK_API_TOKEN
-        )
+        self._client = SlackClient(token)
 
     def run(self):
         self._client.rtm_connect()
@@ -66,7 +68,7 @@ class Bot(threading.Thread):
         text = msg.get('text', '')
         channel = msg['channel']
 
-        # TODO:このチャンネルの頭文字の意味が謎　beluga-snsのチャンネルは全部C 仕様がわからん
+        # TODO:このチャンネルの頭文字の意味が謎　CはチャンネルだがG？DMはDから始まる
         if channel[0] == 'C' or channel[0] == 'G':
             m = AT_MESSAGE_MATCHER.match(text)
             if not m:
@@ -96,6 +98,9 @@ class Bot(threading.Thread):
                 text += "\n{} \n{}".format(t.screen_name, t.text)
             self.send_webapi(data, text, True)
 
+        elif "log" in data['text']:
+            self.send_dm_with_log(data)
+
         else:
             self.send_webapi(data, "かわいい～", True)
 
@@ -113,3 +118,70 @@ class Bot(threading.Thread):
         data['channel'],
         send_text)
 
+    def send_dm_with_log(self, msg):
+        if msg['channel'][0] != 'C' and msg['channel'][0] != 'G':
+            return
+        try:
+            msguser = self._client.users.get(msg['user'])
+            username = msguser['name']
+        except (KeyError, TypeError):
+            if 'username' in msg:
+                username = msg['username']  
+            else:
+                return
+
+        # TODO:oldest指定
+        text = self.__make_log_text(msg['channel'], 100)
+        if len(text) > 0:
+            LOG_FILE_NAME = "log.txt"
+            with open(LOG_FILE_NAME, "w", encoding="utf-8") as f:
+                f.write(text)
+            self._client.upload_file(os.path.abspath(LOG_FILE_NAME), LOG_FILE_NAME, "log" , msg['channel'])
+            os.remove(LOG_FILE_NAME)
+        else:
+            self.send_webapi(msg, "ログがないよ～")
+
+    def __make_log_text(self, channel_id, days_before):
+        today = datetime.now()
+        oldest = datetime(today.year, 
+                          today.month, 
+                          today.day,
+                          0,0,0,0) - timedelta(days=days_before)
+        oldest = time.mktime(oldest.timetuple())
+        msg = ""
+        readingflg = True
+        while readingflg:
+            data = self._client.get_history(channel_id, oldest=oldest, count=1000)
+            if len(data['messages']) == 1000:
+                oldest = data['messages'][0]['ts']
+            else:
+                readingflg = False 
+
+            for m in reversed(data['messages']):
+                if m['type'] == "message":
+                    name = 'no name'
+                    try:
+                        name = self._client.users.get(m['user'])['name']
+                    except (KeyError, TypeError):
+                        if 'username' in m:
+                            # 'bot_message'
+                            name = m['username']
+                        else:
+                            continue
+                    ts = datetime.fromtimestamp(float(m['ts']))
+                    text = m['text']
+                    # TODO:attachments pending 
+                    #attachments = m['attachments']
+                    msg += "\n{0}:{1}\n{2}\n".format(name, ts, text)
+        return msg
+
+if __name__ == "__main__":
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    import settings
+    import webapi.tell as tell
+    import webapi.beluga_api as beluga
+    sb = Bot(settings.SLACK_API_TOKEN)
+    sb.setDaemon(True)
+    sb.start()
+    while True:
+        time.sleep(1)
